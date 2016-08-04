@@ -2,9 +2,10 @@ var camera, scene, renderer;
 var hands = [];
 var mesh;
 
-console.log("this is happening");
-init();
-animate();
+var woodTexture = THREE.ImageUtils.loadTexture('walnut.jpg', {}, function() {
+  init();
+  animate();
+})
 
 function init() {
 
@@ -12,7 +13,7 @@ function init() {
   camera.position.z = 400;
 
   scene = new THREE.Scene();
-  var light = new THREE.AmbientLight( "#444" );
+  var light = new THREE.AmbientLight( "#fff" );
   scene.add(light);
 
 
@@ -48,17 +49,34 @@ function addPointLights() {
 }
 
 function makeHand() {
-  var geometry = new THREE.BoxGeometry( 200, 200, 200 );
-  var material = new THREE.MeshStandardMaterial({
-    color: "#B6A636",
-    metalness: 1.0,
-    roughness: 0.5,
-    shading: THREE.flatShading,
-  });
+  // var geometry = new THREE.TetrahedronGeometry(200);
+  if (Math.random() < 0.5) {
+    var geometry = new THREE.BoxGeometry( 200, 200, 200 );
+  } else {
+    var geometry = new THREE.TorusGeometry( Math.random() * 200, 10, 16, 100);
+  }
+
+  if (Math.random() < 0) {
+    var material = new THREE.MeshStandardMaterial({
+      color: "#B6A636",
+      metalness: 0.9,
+      roughness: 0.5,
+    });
+  } else {
+    var material = new THREE.MeshStandardMaterial({
+      color: "#AB5236",
+      map: woodTexture,
+      aoMap: woodTexture,
+      bumpMap: woodTexture,
+      displacementMap: woodTexture,
+      envMaps: THREE.CubeReflectionMapping,
+      metalness: 0,
+    });
+  }
 
   var mesh = new THREE.Mesh( geometry, material );
-  mesh.velocityX = (Math.random() - 0.5) * 0.001;
-  mesh.velocityY = (Math.random() - 0.5) * 0.001;
+  mesh.velocityX = (Math.random() - 0.5) * 0.01;
+  mesh.velocityY = (Math.random() - 0.5) * 0.01;
   return mesh;
 }
 
