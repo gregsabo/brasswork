@@ -56,7 +56,7 @@ function makeHand() {
     var geometry = new THREE.TorusGeometry( Math.random() * 200, 10, 16, 100);
   }
 
-  if (Math.random() < 0) {
+  if (Math.random() < 0.5) {
     var material = new THREE.MeshStandardMaterial({
       color: "#B6A636",
       metalness: 0.9,
