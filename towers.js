@@ -2,10 +2,8 @@ var camera, scene, renderer;
 var hands = [];
 var mesh;
 
-var woodTexture = THREE.ImageUtils.loadTexture('../walnut.jpg', {}, function() {
-  init();
-  animate();
-})
+init();
+animate();
 
 function init() {
 
@@ -13,17 +11,18 @@ function init() {
   camera.position.z = 400;
 
   scene = new THREE.Scene();
-  var light = new THREE.AmbientLight( "#fff" );
+  var light = new THREE.AmbientLight( "#000" );
   scene.add(light);
 
 
   var starting = makeStartingBlock();
   hands.push(starting);
-  scene.add(hand);
+  scene.add(starting);
   for (var i = 0; i < 10; i++) {
-    var hand = makeDerivedBlock(starting, i * 0.1);
-    hands.push(hand);
-    scene.add( hand );
+    makeDerivedBlock(starting, i * 0.2, false, false, false);
+    makeDerivedBlock(starting, i * 0.2, true, false, false);
+    makeDerivedBlock(starting, i * 0.2, false, true, false);
+    makeDerivedBlock(starting, i * 0.2, true, true, false);
   }
   addPointLights();
 
@@ -37,10 +36,13 @@ function init() {
 }
 
 function addPointLights() {
+  var sun = new THREE.DirectionalLight( 0xffffff, 1);
+  sun.position.set(100, 100, 200);
+  scene.add(sun);
   var lights = [];
-  lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-  lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
-  lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+  lights[ 0 ] = new THREE.PointLight( 0xffffff, 0.1, 0 );
+  lights[ 1 ] = new THREE.PointLight( 0xffffff, 0.1, 0 );
+  lights[ 2 ] = new THREE.PointLight( 0xffffff, 0.1, 0 );
 
   lights[ 0 ].position.set( 0, 400, -400 );
   lights[ 1 ].position.set( 200, 400, 200 );
@@ -53,27 +55,33 @@ function addPointLights() {
 
 function makeStartingBlock() {
   // var geometry = new THREE.BoxGeometry( 200, 200, 200 );
-  var geometry = new THREE.TorusGeometry( 180, 3, 16, 100 );
+  var geometry = new THREE.TorusGeometry( 50, 2, 16, 100 );
+  // var geometry = new THREE.OctahedronGeometry(50);
 
-  if (Math.random() < 0.5) {
-    var material = new THREE.MeshStandardMaterial({
-      color: "#B6A636",
-      metalness: 0.9,
-      roughness: 0.5,
-    });
-  }
+  var material = new THREE.MeshPhongMaterial({
+    color: "#B6A636",
+    shininess: 30,
+    specular: "#FFF",
+    emissive: "#000",
+  });
+
+  // var material = new THREE.MeshStandardMaterial({
+  //   color: "#B6A636",
+  //   metalness: 0.9,
+  //   roughness: 0.5,
+  // });
 
   var mesh = new THREE.Mesh( geometry, material );
-  mesh.velocityX = (Math.random() - 0.5) * 0.01;
-  mesh.velocityY = (Math.random() - 0.5) * 0.01;
-  mesh.velocityZ = (Math.random() - 0.5) * 0.01;
+  mesh.velocityX = (Math.random() - 0.5) * 0.2;
+  mesh.velocityY = (Math.random() - 0.5) * 0.2;
+  mesh.velocityZ = (Math.random() - 0.5) * 0.2;
   mesh.velocityRX = (Math.random() - 0.5) * 0.01;
   mesh.velocityRY = (Math.random() - 0.5) * 0.01;
   mesh.velocityRZ = (Math.random() - 0.5) * 0.01;
   return mesh;
 }
 
-function makeDerivedBlock(startingBlock, multiplier) {
+function makeDerivedBlock(startingBlock, multiplier, flipX, flipY, flipZ) {
   var mesh = new THREE.Mesh(startingBlock.geometry, startingBlock.material);
   var keys = [
     'velocityX',
@@ -83,9 +91,30 @@ function makeDerivedBlock(startingBlock, multiplier) {
     'velocityRY',
     'velocityRZ',
   ];
+
   keys.forEach(function(key) {
     mesh[key] = startingBlock[key] * multiplier;
   });
+
+  if (flipX) {
+    mesh.velocityX = -1 * mesh.velocityX;
+    mesh.velocityRX = -1 * mesh.velocityRX;
+  }
+
+  if (flipY) {
+    mesh.velocityY = -1 * mesh.velocityY;
+    mesh.velocityRY = -1 * mesh.velocityRY;
+  }
+
+  if (flipZ) {
+    mesh.velocityZ = -1 * mesh.velocityZ;
+    mesh.velocityRZ = -1 * mesh.velocityRZ;
+  }
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+
+  hands.push(mesh);
+  scene.add(mesh);
   return mesh;
 }
 
@@ -98,7 +127,9 @@ function onWindowResize() {
 
 }
 
+var frameCount = 0;
 function animate() {
+  frameCount += 1;
 
   requestAnimationFrame( animate );
 
@@ -113,6 +144,9 @@ function animate() {
     hand.rotation.z += hand.velocityRZ;
   }
 
+  // camera.position.z = Math.sin(frameCount * 0.0005) * 400;
+  // camera.position.x = Math.cos(frameCount * 0.0005) * 400;
+  // camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   renderer.render( scene, camera );
 }
