@@ -65,26 +65,40 @@ function frameWithPauses(inFrame, pauseLength) {
   return inFrame - (pauseLength * numOrbits);
 }
 
-function makeLeaderStep() {
-  // The leader is an invisible set of attributes
-  // which will modulate with each frame
-  var SIZE = 50;
-  var orbitShape = new Vector3(
-    Math.random() * SIZE,
-    Math.random() * SIZE,
-    Math.random() * SIZE
+function randomOrbitShape(size) {
+  return new Vector3(
+    (Math.random() * size * 2) - size,
+    (Math.random() * size * 2) - size,
+    (Math.random() * size * 2) - size
   );
 
-  var numFlipOptions = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5];
+}
 
-  var flipAmounts = new Vector3(
+function randomFlipAmounts() {
+  var numFlipOptions = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
+
+  var flips = new Vector3(
     Math.PI / FRAMES_PER_ORBIT * choose(numFlipOptions),
     Math.PI / FRAMES_PER_ORBIT * choose(numFlipOptions),
     Math.PI / FRAMES_PER_ORBIT * choose(numFlipOptions)
   );
+  flips[choose(['x', 'y', 'z'])] = 0;
+  console.log(flips);
+  return flips;
+}
+
+function makeLeaderStep() {
+  // The leader is an invisible set of attributes
+  // which will modulate with each frame
+  var SIZE = 50;
+  var orbitShape = randomOrbitShape(SIZE);
+  var flipAmounts = randomFlipAmounts();
+
 
   return function(object, frame) {
     if (isPauseFrame(frame, 10 * 20)) {
+      orbitShape = randomOrbitShape(SIZE);
+      flipAmounts = randomFlipAmounts();
       return;
     }
     var virtualFrame = frameWithPauses(frame, 10 * 20);
