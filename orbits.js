@@ -48,6 +48,23 @@ function choose(inArray) {
   return inArray[Math.floor(Math.random() * inArray.length)];
 }
 
+function isPauseFrame(inFrame, pauseLength) {
+  var completeOrbitLength = FRAMES_PER_ORBIT + pauseLength;
+  var positionInOrbit = inFrame % completeOrbitLength;
+  if (positionInOrbit > FRAMES_PER_ORBIT) {
+    return true;
+  } else {
+    return false;
+  }
+
+}
+
+function frameWithPauses(inFrame, pauseLength) {
+  var completeOrbitLength = FRAMES_PER_ORBIT + pauseLength;
+  var numOrbits = Math.floor(inFrame / completeOrbitLength);
+  return inFrame - (pauseLength * numOrbits);
+}
+
 function makeLeaderStep() {
   // The leader is an invisible set of attributes
   // which will modulate with each frame
@@ -67,9 +84,14 @@ function makeLeaderStep() {
   );
 
   return function(object, frame) {
+    if (isPauseFrame(frame, 10 * 20)) {
+      return;
+    }
+    var virtualFrame = frameWithPauses(frame, 10 * 20);
+
     ['x', 'y', 'z'].forEach(function(dimension) {
       object.position[dimension] = (
-        -1 * Math.cos(frame * TIME_MULTIPLIER) * orbitShape[dimension]
+        -1 * Math.cos(virtualFrame * TIME_MULTIPLIER) * orbitShape[dimension]
       ) + SIZE;
 
       object.rotation[dimension] += flipAmounts[dimension];
