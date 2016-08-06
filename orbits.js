@@ -1,4 +1,4 @@
-/* global THREE, createjs, window, document, console, requestAnimationFrame */
+/* global THREE, createjs, window, document, console, requestAnimationFrame, _ */
 
 var Vector3 = THREE.Vector3;
 var Tween = createjs.Tween;
@@ -10,15 +10,23 @@ createjs.Ticker.framerate = 60;
 
 function init() {
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
-  camera.position.z = 400;
+  camera.position.z = 200;
 
   scene = new THREE.Scene();
   var light = new THREE.AmbientLight( "#000" );
   scene.add(light);
 
   var starting = makeStartingBlock();
-  tweenLeader(starting);
+  // function tweenObject(leader, motionNum, delay, flipX, flipY, flipZ) {
+  tweenObject(starting, 0, 0);
   scene.add(starting);
+  _.range(10).forEach(function(i) {
+    forEachFlip(function(x, y, z) {
+      var object = starting.clone();
+      scene.add(object);
+      tweenObject(object, 0, i * 2000, x, y, z);
+    });
+  });
   addPointLights();
 
   renderer = new THREE.WebGLRenderer();
@@ -33,12 +41,26 @@ function init() {
 //   return inArray[Math.floor(Math.random() * inArray.length)];
 // }
 
-function randomOrbitShape(size) {
-  return new Vector3(
-    (Math.random() * size * 2) - size,
-    (Math.random() * size * 2) - size,
-    (Math.random() * size * 2) - size
-  );
+var SHAPE_HISTORY = [];
+function randomOrbitShape(size, seed) {
+  if (!SHAPE_HISTORY[seed]) {
+    SHAPE_HISTORY[seed] = new Vector3(
+      (Math.random() * size * 2) - size,
+      (Math.random() * size * 2) - size,
+      (Math.random() * size * 2) - size
+    );
+  }
+  return SHAPE_HISTORY[seed].clone();
+}
+
+function forEachFlip(inFunc) {
+  [true, false].forEach(function(x) {
+    [true, false].forEach(function(y) {
+      [false].forEach(function(z) {
+        inFunc(x, y, z);
+      });
+    });
+  });
 }
 
 function pojo(inVector) {
@@ -49,10 +71,22 @@ function pojo(inVector) {
   }
 }
 
-function tweenLeader(leader) {
-  // var positionCursor = pojo(leader.position);
-  var target = pojo(randomOrbitShape(200));
-  Tween.get(leader.position).to(target, 2000).call(tweenLeader, [leader]);
+function tweenObject(object, motionNum, delay, flipX, flipY, flipZ) {
+  var targetPosition = randomOrbitShape(100, motionNum);
+
+  var flipVector = new Vector3()
+  flipVector.x = flipX ? 1 : -1;
+  flipVector.y = flipY ? 1 : -1;
+  flipVector.z = flipZ ? 1 : -1;
+
+  targetPosition.multiplyVectors(targetPosition, flipVector);
+
+  var tween = Tween.get(object.position);
+  if (delay) {
+    tween = tween.wait(delay);
+  }
+  tween.to(pojo(targetPosition), 10000)
+    .call(tweenObject, [object, motionNum + 1, 0, flipX, flipY, flipZ]);
 }
 
 function addPointLights() {
