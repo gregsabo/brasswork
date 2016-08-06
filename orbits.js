@@ -1,26 +1,14 @@
-/*
-position = sin(time) * shape
-- create a ring which travels around a random circle forever
+/* global THREE, createjs, window, document, console, requestAnimationFrame */
 
-follower = make_follower(ring, delay)
-- create a trail of rings which follow a "leader ring" at a delay
-
-follower.delay = -1 * cos(time) * max_spread
-- modulate the delay 
-*/
+var Vector3 = THREE.Vector3;
+var Tween = createjs.Tween;
 
 var camera, scene, renderer;
-var hands = [];
-var mesh;
-var leader;
-var Vector3 = THREE.Vector3;
+var updateables = [];
 
-var frame_count = 0;
-var TIME_MULTIPLIER = 0.01;
-var FRAMES_PER_ORBIT = (2 * Math.PI) / TIME_MULTIPLIER;
+createjs.Ticker.framerate = 60;
 
 function init() {
-
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
   camera.position.z = 400;
 
@@ -29,9 +17,8 @@ function init() {
   scene.add(light);
 
   var starting = makeStartingBlock();
-  starting.step = makeLeaderStep();
+  tweenLeader(starting);
   scene.add(starting);
-  scene.add(makeFollower(starting, 100));
   addPointLights();
 
   renderer = new THREE.WebGLRenderer();
@@ -42,28 +29,9 @@ function init() {
   window.addEventListener( 'resize', onWindowResize, false );
 }
 
-PERIOD_LENGTH = 30 * 30;
-
-function choose(inArray) {
-  return inArray[Math.floor(Math.random() * inArray.length)];
-}
-
-function isPauseFrame(inFrame, pauseLength) {
-  var completeOrbitLength = FRAMES_PER_ORBIT + pauseLength;
-  var positionInOrbit = inFrame % completeOrbitLength;
-  if (positionInOrbit > FRAMES_PER_ORBIT) {
-    return true;
-  } else {
-    return false;
-  }
-
-}
-
-function frameWithPauses(inFrame, pauseLength) {
-  var completeOrbitLength = FRAMES_PER_ORBIT + pauseLength;
-  var numOrbits = Math.floor(inFrame / completeOrbitLength);
-  return inFrame - (pauseLength * numOrbits);
-}
+// function choose(inArray) {
+//   return inArray[Math.floor(Math.random() * inArray.length)];
+// }
 
 function randomOrbitShape(size) {
   return new Vector3(
@@ -71,75 +39,20 @@ function randomOrbitShape(size) {
     (Math.random() * size * 2) - size,
     (Math.random() * size * 2) - size
   );
-
 }
 
-function randomFlipAmounts() {
-  var numFlipOptions = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
-
-  var flips = new Vector3(
-    Math.PI / FRAMES_PER_ORBIT * choose(numFlipOptions),
-    Math.PI / FRAMES_PER_ORBIT * choose(numFlipOptions),
-    Math.PI / FRAMES_PER_ORBIT * choose(numFlipOptions)
-  );
-  flips[choose(['x', 'y', 'z'])] = 0;
-  console.log(flips);
-  return flips;
-}
-
-function makeLeaderStep() {
-  // The leader is an invisible set of attributes
-  // which will modulate with each frame
-  var SIZE = 50;
-  var orbitShape = randomOrbitShape(SIZE);
-  var flipAmounts = randomFlipAmounts();
-
-
-  return function(object, frame) {
-    if (isPauseFrame(frame, 10 * 20)) {
-      orbitShape = randomOrbitShape(SIZE);
-      flipAmounts = randomFlipAmounts();
-      return;
-    }
-    var virtualFrame = frameWithPauses(frame, 10 * 20);
-
-    ['x', 'y', 'z'].forEach(function(dimension) {
-      object.position[dimension] = (
-        -1 * Math.cos(virtualFrame * TIME_MULTIPLIER) * orbitShape[dimension]
-      ) + SIZE;
-
-      object.rotation[dimension] += flipAmounts[dimension];
-    });
+function pojo(inVector) {
+  return {
+    x: inVector.x,
+    y: inVector.y,
+    z: inVector.z
   }
 }
 
-function makeFollower(leader, delay) {
-  var follower = leader.clone();
-  var history = [];
-
-  follower.step = function(object, frame) {
-    history.push({
-      position: leader.position.clone(),
-      rotation: leader.rotation.clone()
-    });
-
-    var historicalStep = history[history.length - delay];
-    if (!historicalStep) {
-      historicalStep = history[0];
-    }
-
-    if (historicalStep) {
-      object.position.x = historicalStep.position.x;
-      object.position.y = historicalStep.position.y;
-      object.position.z = historicalStep.position.z;
-
-      object.rotation.x = historicalStep.rotation.x;
-      object.rotation.y = historicalStep.rotation.y;
-      object.rotation.z = historicalStep.rotation.z;
-    }
-  }
-
-  return follower;
+function tweenLeader(leader) {
+  // var positionCursor = pojo(leader.position);
+  var target = pojo(randomOrbitShape(200));
+  Tween.get(leader.position).to(target, 2000).call(tweenLeader, [leader]);
 }
 
 function addPointLights() {
@@ -177,27 +90,20 @@ function makeStartingBlock() {
 }
 
 function onWindowResize() {
-
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
 
   renderer.setSize( window.innerWidth, window.innerHeight );
-
 }
 
 function animate() {
-  frame_count = frame_count + 1;
-
-  requestAnimationFrame( animate );
-  scene.traverse(function(object) {
-    if (!object.step) {
-      return;
-    }
-
-    object.step(object, frame_count);
+  updateables.forEach(function(updateable) {
+    updateable.update();
   });
 
   renderer.render( scene, camera );
+
+  requestAnimationFrame( animate );
 }
 
 window.onload = function() {
