@@ -31,6 +31,7 @@ function init() {
   var starting = makeStartingBlock();
   starting.step = makeLeaderStep();
   scene.add(starting);
+  scene.add(makeFollower(starting, 100));
   addPointLights();
 
   renderer = new THREE.WebGLRenderer();
@@ -64,7 +65,6 @@ function makeLeaderStep() {
     Math.PI / FRAMES_PER_ORBIT * choose(numFlipOptions),
     Math.PI / FRAMES_PER_ORBIT * choose(numFlipOptions)
   );
-  console.log('chose', flipAmounts);
 
   return function(object, frame) {
     ['x', 'y', 'z'].forEach(function(dimension) {
@@ -75,6 +75,35 @@ function makeLeaderStep() {
       object.rotation[dimension] += flipAmounts[dimension];
     });
   }
+}
+
+function makeFollower(leader, delay) {
+  var follower = leader.clone();
+  var history = [];
+
+  follower.step = function(object, frame) {
+    history.push({
+      position: leader.position.clone(),
+      rotation: leader.rotation.clone()
+    });
+
+    var historicalStep = history[history.length - delay];
+    if (!historicalStep) {
+      historicalStep = history[0];
+    }
+
+    if (historicalStep) {
+      object.position.x = historicalStep.position.x;
+      object.position.y = historicalStep.position.y;
+      object.position.z = historicalStep.position.z;
+
+      object.rotation.x = historicalStep.rotation.x;
+      object.rotation.y = historicalStep.rotation.y;
+      object.rotation.z = historicalStep.rotation.z;
+    }
+  }
+
+  return follower;
 }
 
 function addPointLights() {
