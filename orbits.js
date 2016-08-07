@@ -6,7 +6,7 @@ var Tween = createjs.Tween;
 var camera, scene, renderer;
 var updateables = [];
 
-createjs.Ticker.framerate = 60;
+createjs.Ticker.framerate = 30;
 
 function init() {
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
@@ -16,15 +16,11 @@ function init() {
   var light = new THREE.AmbientLight( "#000" );
   scene.add(light);
 
-  var starting = makeStartingBlock();
-  // function tweenObject(leader, motionNum, delay, flipX, flipY, flipZ) {
-  tweenObject(starting, 0, 0);
-  scene.add(starting);
   _.range(10).forEach(function(i) {
     forEachFlip(function(x, y, z) {
-      var object = starting.clone();
+      var object = makeStartingBlock();
       scene.add(object);
-      tweenObject(object, 0, i * 2000, x, y, z);
+      tweenObject(object, 0, i * 800, x, y, z);
     });
   });
   addPointLights();
@@ -37,9 +33,9 @@ function init() {
   window.addEventListener( 'resize', onWindowResize, false );
 }
 
-// function choose(inArray) {
-//   return inArray[Math.floor(Math.random() * inArray.length)];
-// }
+function choose(inArray) {
+  return inArray[Math.floor(Math.random() * inArray.length)];
+}
 
 var SHAPE_HISTORY = [];
 function randomOrbitShape(size, seed) {
@@ -51,6 +47,20 @@ function randomOrbitShape(size, seed) {
     );
   }
   return SHAPE_HISTORY[seed].clone();
+}
+
+var FLIP_HISTORY = [];
+function randomRotate(seed) {
+  if (!FLIP_HISTORY[seed]) {
+    var flip = new Vector3(
+      choose([-1, 0, 1]) * Math.PI,
+      choose([-1, 0, 1]) * Math.PI,
+      choose([-1, 0, 1]) * Math.PI
+    );
+    // flip[choose(['x', 'y', 'z'])] = 0;
+    FLIP_HISTORY[seed] = flip;
+  }
+  return FLIP_HISTORY[seed].clone();
 }
 
 function forEachFlip(inFunc) {
@@ -72,7 +82,10 @@ function pojo(inVector) {
 }
 
 function tweenObject(object, motionNum, delay, flipX, flipY, flipZ) {
-  var targetPosition = randomOrbitShape(100, motionNum);
+  var targetPosition = randomOrbitShape(70, motionNum);
+  var targetRotation = randomRotate(motionNum);
+  var motionLength = 40000;
+  targetPosition.x *= 2;
 
   var flipVector = new Vector3()
   flipVector.x = flipX ? 1 : -1;
@@ -80,12 +93,21 @@ function tweenObject(object, motionNum, delay, flipX, flipY, flipZ) {
   flipVector.z = flipZ ? 1 : -1;
 
   targetPosition.multiplyVectors(targetPosition, flipVector);
+  if (flipY) {
+    targetRotation.x *= -1;
+  }
+  if (flipX) {
+    targetRotation.y *= -1;
+  }
 
   var tween = Tween.get(object.position);
-  if (delay) {
-    tween = tween.wait(delay);
-  }
-  tween.to(pojo(targetPosition), 10000)
+  var tweenRotate = Tween.get(object.rotation);
+
+  tween = tween.wait(delay);
+  tweenRotate = tweenRotate.wait(delay + (motionLength / 2));
+
+  tweenRotate.to(pojo(targetRotation), motionLength, createjs.Ease.sineIn);
+  tween.to(pojo(targetPosition), motionLength, createjs.Ease.sineIn)
     .call(tweenObject, [object, motionNum + 1, 0, flipX, flipY, flipZ]);
 }
 
@@ -93,6 +115,11 @@ function addPointLights() {
   var sun = new THREE.DirectionalLight( 0xffffff, 1);
   sun.position.set(100, 100, 200);
   scene.add(sun);
+
+  var sun = new THREE.DirectionalLight( 0xffffff, 1);
+  sun.position.set(200, -100, -200);
+  scene.add(sun);
+
   var lights = [];
   lights[ 0 ] = new THREE.PointLight( 0xffffff, 0.1, 0 );
   lights[ 1 ] = new THREE.PointLight( 0xffffff, 0.1, 0 );
@@ -109,7 +136,7 @@ function addPointLights() {
 
 function makeStartingBlock() {
   // var geometry = new THREE.BoxGeometry( 200, 200, 200 );
-  var geometry = new THREE.TorusGeometry( 50, 2, 16, 100 );
+  var geometry = new THREE.TorusGeometry( 70, 1, 16, 100 );
   // var geometry = new THREE.OctahedronGeometry(50);
 
   var material = new THREE.MeshPhongMaterial({
@@ -130,14 +157,20 @@ function onWindowResize() {
   renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
+var frame_num = 0;
 function animate() {
   updateables.forEach(function(updateable) {
     updateable.update();
   });
 
   renderer.render( scene, camera );
+  // camera.position.z = Math.sin(frame_num * 0.01) * 200;
+  // camera.rotation.x = Math.sin(frame_num * 0.01);
+  // camera.position.x = Math.sin(frame_num * 0.003) * 200;
+  // camera.lookAt(new Vector3(0, 1, 0));
 
   requestAnimationFrame( animate );
+  frame_num += 1;
 }
 
 window.onload = function() {
