@@ -11,14 +11,15 @@ import Ease from '../easing';
 
 var camera, scene, renderer;
 
-var MOTION_DURATION = 4000;
-var NUM_OVERLAPPING = 2;
-var TAIL_LENGTH = 10;
-var TAIL_DELAY = 300;
+var Vector3 = THREE.Vector3;
+var MOTION_DURATION = 40000;
+var NUM_OVERLAPPING = 10;
+var TAIL_LENGTH = 30;
+var TAIL_DELAY = 100;
 
 function init() {
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
-  camera.position.z = 200;
+  camera.position.z = 150;
 
   scene = new THREE.Scene();
   var light = new THREE.AmbientLight( "#000" );
@@ -27,7 +28,7 @@ function init() {
   forEachFlip(function(x, y) {
     range(TAIL_LENGTH).forEach(function(i) {
       var ring = makeRing();
-      ring.guide = new Guide(100, i * TAIL_DELAY, x, y);
+      ring.guide = new Guide(50, i * TAIL_DELAY, x, y);
     });
   });
 
@@ -55,6 +56,10 @@ function forEachFlip(inFunc) {
   });
 }
 
+function negRand() {
+  return Math.random() * 2 - 1;
+}
+
 var TARGET_HISTORY = [];
 var CUMULATIVE = {x: 0, y: 0, z: 0};
 class Guide {
@@ -73,7 +78,7 @@ class Guide {
 
     var target = {};
     ['x', 'y', 'z'].forEach((dim) => {
-      target[dim] = Math.random() * this.max - CUMULATIVE[dim];
+      target[dim] = negRand() * this.max - CUMULATIVE[dim];
       CUMULATIVE[dim] += target[dim];
       target['rotate' + dim.toUpperCase()] = (Math.random() * 6) - 3;
     })
@@ -117,7 +122,7 @@ class Guide {
         if (!combined[key]) {
           combined[key] = 0;
         }
-        combined[key] += target[key] * Ease.linear(progressForThisTarget);
+        combined[key] += target[key] * Ease.easeInOutCubic(progressForThisTarget);
       })
     });
 
@@ -186,7 +191,6 @@ function onWindowResize() {
 }
 
 var START_TIME = window.performance.now();
-console.log('starting', START_TIME);
 function animate() {
   var now = window.performance.now();
   scene.traverse(function(obj) {
@@ -196,6 +200,8 @@ function animate() {
   })
   renderer.render( scene, camera );
   requestAnimationFrame( animate );
+  camera.position.x = Math.sin(now * 0.0001) * 50;
+  camera.lookAt(new Vector3(0, 0, 0));
 }
 
 export default function() {
