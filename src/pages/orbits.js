@@ -12,14 +12,16 @@ import Ease from '../easing';
 var camera, scene, renderer;
 
 var Vector3 = THREE.Vector3;
-var MOTION_DURATION = 40000;
-var NUM_OVERLAPPING = 10;
-var TAIL_LENGTH = 30;
-var TAIL_DELAY = 100;
+var MOTION_DURATION = 60000;
+var NUM_OVERLAPPING = 5;
+var TAIL_LENGTH = 20;
+var TAIL_SPACE = 0.005;
+var TAIL_DELAY = MOTION_DURATION * TAIL_SPACE;
+var ROTATION_AMOUNT = 4;
 
 function init() {
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
-  camera.position.z = 150;
+  camera.position.z = 500;
 
   scene = new THREE.Scene();
   var light = new THREE.AmbientLight( "#000" );
@@ -28,7 +30,7 @@ function init() {
   forEachFlip(function(x, y) {
     range(TAIL_LENGTH).forEach(function(i) {
       var ring = makeRing();
-      ring.guide = new Guide(50, i * TAIL_DELAY, x, y);
+      ring.guide = new Guide(150, i * TAIL_DELAY, x, y);
     });
   });
 
@@ -76,11 +78,16 @@ class Guide {
       return TARGET_HISTORY[generation];
     }
 
+    // at 5, between -15 and 5
+    // at -5, between -5 and 15
+    // at 5, between -5 and 5
+
     var target = {};
     ['x', 'y', 'z'].forEach((dim) => {
       target[dim] = negRand() * this.max - CUMULATIVE[dim];
       CUMULATIVE[dim] += target[dim];
-      target['rotate' + dim.toUpperCase()] = (Math.random() * 6) - 3;
+      var rotate = (Math.random() * ROTATION_AMOUNT) - (ROTATION_AMOUNT / 2);
+      target['rotate' + dim.toUpperCase()] = rotate;
     })
     // target['rotate' + choose(['x', 'y', 'z']).toUpperCase()] = 0;
 
@@ -93,12 +100,14 @@ class Guide {
     if (this.flipX) {
       object.position.x *= -1;
       object.rotation.y *= -1;
+      object.rotation.y += Math.PI;
     }
 
     if (this.flipY) {
       object.position.y *= -1;
       object.rotation.x *= -1;
     }
+    object.rotation.z += Math.PI / 2;
 
     return object;
   }
@@ -122,7 +131,7 @@ class Guide {
         if (!combined[key]) {
           combined[key] = 0;
         }
-        combined[key] += target[key] * Ease.easeInOutCubic(progressForThisTarget);
+        combined[key] += target[key] * Ease.easeInOutQuint(progressForThisTarget);
       })
     });
 
@@ -168,12 +177,21 @@ function addPointLights() {
 
 function makeRing() {
   // var geometry = new THREE.BoxGeometry( 200, 200, 200 );
-  var geometry = new THREE.TorusGeometry( 70, 1, 16, 100 );
+  var geometry = new THREE.TorusGeometry( 150, 2, 3, 50 );
+  // var geometry = new THREE.TorusGeometry( 70, 3, 3, 10 );
   // var geometry = new THREE.OctahedronGeometry(50);
 
-  var material = new THREE.MeshPhongMaterial({
+  // var material = new THREE.MeshPhongMaterial({
+  //   color: "#B6A636",
+  //   shininess: 30,
+  //   specular: "#FFF",
+  //   emissive: "#000",
+  // });
+
+  var material = new THREE.MeshStandardMaterial({
     color: "#B6A636",
-    shininess: 30,
+    metalness: 1.0,
+    roughness: 0.5,
     specular: "#FFF",
     emissive: "#000",
   });
@@ -200,7 +218,8 @@ function animate() {
   })
   renderer.render( scene, camera );
   requestAnimationFrame( animate );
-  camera.position.x = Math.sin(now * 0.0001) * 50;
+  // camera.position.x = Math.sin(now * 0.0001) * 100;
+  camera.position.z = (Math.cos(now * 0.00013) * 50) + 400;
   camera.lookAt(new Vector3(0, 0, 0));
 }
 
