@@ -2,23 +2,17 @@
 
 /*
   - A single ring, moving and rotating once.
-  - Multiple movements, dovetailed togeher.
-
-  - launch timeout/interval for each guide (or chain callbacks)
-
-  - Four rings, mirrored.
-  - A trail of ten rings.
 */
 
 import THREE from 'three';
-import * as motion from 'popmotion';
 // import threeAdapter from 'popmotion-adapter-three';
 import { keys, range } from 'lodash';
+import Ease from '../easing';
 
 var camera, scene, renderer;
 
 var MOTION_DURATION = 4000;
-var NUM_OVERLAPPING = 10;
+var NUM_OVERLAPPING = 2;
 var TAIL_LENGTH = 10;
 var TAIL_DELAY = 300;
 
@@ -33,7 +27,7 @@ function init() {
   forEachFlip(function(x, y) {
     range(TAIL_LENGTH).forEach(function(i) {
       var ring = makeRing();
-      ring.guide = new Guide(100, i * TAIL_DELAY, x, y).startNewMotion();
+      ring.guide = new Guide(100, i * TAIL_DELAY, x, y);
     });
   });
 
@@ -63,13 +57,13 @@ function forEachFlip(inFunc) {
 
 var TARGET_HISTORY = [];
 var CUMULATIVE = {x: 0, y: 0, z: 0};
-var GENERATION_DELAY_LOOKUP = {};
 class Guide {
   constructor(max, delay, flipX, flipY) {
     this.delay = delay;
     this.max = max;
     this.flipX = flipX;
     this.flipY = flipY;
+    this.generateTargetAndUpdateCumulative();
   }
 
   generateTargetAndUpdateCumulative(generation) {
@@ -90,46 +84,6 @@ class Guide {
     return target;
   }
 
-  generateCursor() {
-    return {
-      x: 0,
-      y: 0,
-      z: 0,
-      rotateX: 0,
-      rotateY: 0,
-      rotateZ: 0
-    };
-  }
-
-  startNewMotion(generation) {
-    if (!generation) {
-      generation = 0;
-    }
-
-    if (GENERATION_DELAY_LOOKUP[String(generation) + '.' + String(this.delay)]) {
-      // There's already a cursor for thie generation + delay.
-      return this;
-    }
-
-    var target = this.generateTargetAndUpdateCumulative(generation);
-    var cursor = this.generateCursor();
-
-    motion.tween({
-      element: cursor,
-      delay: generation === 0 ? this.delay : 0,
-      values: target,
-      ease: motion.easing.quartInOut,
-      duration: MOTION_DURATION,
-    }).start();
-    setTimeout(
-      this.startNewMotion.bind(this, 0, generation + 1),
-      MOTION_DURATION / NUM_OVERLAPPING
-    )
-    GENERATION_DELAY_LOOKUP[String(generation) + '.' + String(this.delay)] = true;
-
-    return this;
-  }
-
   applyFlips(object) {
     if (this.flipX) {
       object.position.x *= -1;
@@ -144,16 +98,34 @@ class Guide {
     return object;
   }
 
-  applyToObject(object) {
+  interpolateTargets(time) {
     var combined = {};
-    CURSORS.forEach(function(cursor) {
-      keys(cursor).forEach(function(key) {
+    var overlapSize = MOTION_DURATION / NUM_OVERLAPPING;
+    var currentGeneration = Math.floor(time / overlapSize);
+
+    range(currentGeneration + 1).forEach((i) => {
+      var target = this.generateTargetAndUpdateCumulative(i);
+      var progressForThisTarget = (time - (i * overlapSize)) / MOTION_DURATION
+      if (progressForThisTarget > 1) {
+        progressForThisTarget = 1;
+      }
+      if (progressForThisTarget < 0) {
+        return;
+      }
+
+      keys(target).forEach(function(key) {
         if (!combined[key]) {
           combined[key] = 0;
         }
-        combined[key] += cursor[key]
+        combined[key] += target[key] * Ease.linear(progressForThisTarget);
       })
     });
+
+    return combined;
+  }
+
+  applyToObject(object, time) {
+    var combined = this.interpolateTargets(time - this.delay);
 
     object.position.x = combined.x;
     object.position.y = combined.y;
@@ -213,10 +185,13 @@ function onWindowResize() {
   renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
+var START_TIME = window.performance.now();
+console.log('starting', START_TIME);
 function animate() {
+  var now = window.performance.now();
   scene.traverse(function(obj) {
     if (obj.guide) {
-      obj.guide.applyToObject(obj);
+      obj.guide.applyToObject(obj, now - START_TIME);
     }
   })
   renderer.render( scene, camera );
