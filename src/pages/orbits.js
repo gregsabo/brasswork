@@ -144,7 +144,7 @@ class Guide {
   }
 
   applyToObject(object, time) {
-    var delay = ((Math.sin(time * STRETCH_SPEED) / 2) + .5) * this.delay;
+    var delay = ((Math.sin(time * STRETCH_SPEED) / 2) + .55) * this.delay;
     var combined = this.interpolateTargets(time - delay);
 
     object.position.x = combined.x;
@@ -183,7 +183,7 @@ function addPointLights() {
 
 function makeRing() {
   // var geometry = new THREE.BoxGeometry( 200, 200, 200 );
-  var geometry = new THREE.TorusGeometry( 100, 5, 3, 50 );
+  var geometry = new THREE.TorusGeometry( 100, 5, 3, 30 );
   // var geometry = new THREE.TorusGeometry( 70, 3, 3, 10 );
   // var geometry = new THREE.OctahedronGeometry(50);
 
@@ -215,9 +215,10 @@ function onWindowResize() {
 }
 
 var START_TIME = window.performance.now();
+var fast_forward = Math.random() * MOTION_DURATION * 2;
 function animate() {
   var now = window.performance.now();
-  now += 7500000;
+  // now += fast_forward;
   scene.traverse(function(obj) {
     if (obj.guide) {
       obj.guide.applyToObject(obj, now - START_TIME);
