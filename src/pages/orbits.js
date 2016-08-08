@@ -17,7 +17,7 @@ var NUM_OVERLAPPING = 5;
 var TAIL_LENGTH = 20;
 var TAIL_SPACE = 0.005;
 var TAIL_DELAY = MOTION_DURATION * TAIL_SPACE;
-var ROTATION_AMOUNT = 4;
+var ROTATION_AMOUNT = 8;
 
 function init() {
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
