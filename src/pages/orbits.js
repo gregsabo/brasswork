@@ -96,7 +96,6 @@ class Guide {
     // target['rotate' + choose(['x', 'y', 'z']).toUpperCase()] = 0;
 
     TARGET_HISTORY[generation] = target;
-    console.log('target', target);
 
     return target;
   }
@@ -218,6 +217,7 @@ var START_TIME = window.performance.now();
 var fast_forward = Math.random() * MOTION_DURATION * 2;
 function animate() {
   var now = window.performance.now();
+  now += MOTION_DURATION * 2 / NUM_OVERLAPPING;
   // now += fast_forward;
   scene.traverse(function(obj) {
     if (obj.guide) {
