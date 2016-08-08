@@ -12,16 +12,17 @@ import Ease from '../easing';
 var camera, scene, renderer;
 
 var Vector3 = THREE.Vector3;
-var MOTION_DURATION = 60000;
-var NUM_OVERLAPPING = 5;
+var MOTION_DURATION = 600000;
+var NUM_OVERLAPPING = 10;
 var TAIL_LENGTH = 20;
 var TAIL_SPACE = 0.005;
 var TAIL_DELAY = MOTION_DURATION * TAIL_SPACE;
-var ROTATION_AMOUNT = 8;
+var ROTATION_AMOUNT = 20;
+var STRETCH_SPEED = 0.0001;
 
 function init() {
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
-  camera.position.z = 500;
+  camera.position.z = 300;
 
   scene = new THREE.Scene();
   var light = new THREE.AmbientLight( "#000" );
@@ -30,7 +31,7 @@ function init() {
   forEachFlip(function(x, y) {
     range(TAIL_LENGTH).forEach(function(i) {
       var ring = makeRing();
-      ring.guide = new Guide(150, i * TAIL_DELAY, x, y);
+      ring.guide = new Guide(50, i * TAIL_DELAY, x, y);
     });
   });
 
@@ -50,7 +51,7 @@ function choose(inArray) {
 
 function forEachFlip(inFunc) {
   [true, false].forEach(function(x) {
-    [true, false].forEach(function(y) {
+    [true].forEach(function(y) {
       [false].forEach(function(z) {
         inFunc(x, y, z);
       });
@@ -89,9 +90,13 @@ class Guide {
       var rotate = (Math.random() * ROTATION_AMOUNT) - (ROTATION_AMOUNT / 2);
       target['rotate' + dim.toUpperCase()] = rotate;
     })
+    target['y'] = 0;
+    target['x'] *= 1.5;
+    // target['rotateZ'] = 0;
     // target['rotate' + choose(['x', 'y', 'z']).toUpperCase()] = 0;
 
     TARGET_HISTORY[generation] = target;
+    console.log('target', target);
 
     return target;
   }
@@ -139,7 +144,8 @@ class Guide {
   }
 
   applyToObject(object, time) {
-    var combined = this.interpolateTargets(time - this.delay);
+    var delay = ((Math.sin(time * STRETCH_SPEED) / 2) + .5) * this.delay;
+    var combined = this.interpolateTargets(time - delay);
 
     object.position.x = combined.x;
     object.position.y = combined.y;
@@ -177,7 +183,7 @@ function addPointLights() {
 
 function makeRing() {
   // var geometry = new THREE.BoxGeometry( 200, 200, 200 );
-  var geometry = new THREE.TorusGeometry( 150, 2, 3, 50 );
+  var geometry = new THREE.TorusGeometry( 100, 5, 3, 50 );
   // var geometry = new THREE.TorusGeometry( 70, 3, 3, 10 );
   // var geometry = new THREE.OctahedronGeometry(50);
 
@@ -211,6 +217,7 @@ function onWindowResize() {
 var START_TIME = window.performance.now();
 function animate() {
   var now = window.performance.now();
+  now += 7500000;
   scene.traverse(function(obj) {
     if (obj.guide) {
       obj.guide.applyToObject(obj, now - START_TIME);
@@ -219,7 +226,7 @@ function animate() {
   renderer.render( scene, camera );
   requestAnimationFrame( animate );
   // camera.position.x = Math.sin(now * 0.0001) * 100;
-  camera.position.z = (Math.cos(now * 0.00013) * 50) + 500;
+  // camera.position.z = (Math.cos(now * 0.00013) * 50) + 500;
   camera.lookAt(new Vector3(0, 0, 0));
 }
 
