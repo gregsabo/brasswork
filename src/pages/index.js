@@ -2,10 +2,7 @@ var camera, scene, renderer;
 var hands = [];
 var mesh;
 
-var woodTexture = THREE.ImageUtils.loadTexture('walnut.jpg', {}, function() {
-  init();
-  animate();
-})
+var woodTexture;
 
 function init() {
 
@@ -30,6 +27,7 @@ function init() {
   document.body.appendChild( renderer.domElement );
 
   window.addEventListener( 'resize', onWindowResize, false );
+  animate();
 
 }
 
@@ -103,3 +101,12 @@ function animate() {
   renderer.render( scene, camera );
 
 }
+
+function loadAndInit() {
+  console.log('check this shit out!');
+  woodTexture = THREE.ImageUtils.loadTexture('walnut.jpg', {}, function() {
+    init();
+  });
+}
+
+export default loadAndInit;
