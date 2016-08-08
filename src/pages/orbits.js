@@ -219,7 +219,7 @@ function animate() {
   renderer.render( scene, camera );
   requestAnimationFrame( animate );
   // camera.position.x = Math.sin(now * 0.0001) * 100;
-  camera.position.z = (Math.cos(now * 0.00013) * 50) + 400;
+  camera.position.z = (Math.cos(now * 0.00013) * 50) + 500;
   camera.lookAt(new Vector3(0, 0, 0));
 }
 
