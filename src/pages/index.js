@@ -103,7 +103,6 @@ function animate() {
 }
 
 function loadAndInit() {
-  console.log('check this shit out!');
   woodTexture = THREE.ImageUtils.loadTexture('walnut.jpg', {}, function() {
     init();
   });

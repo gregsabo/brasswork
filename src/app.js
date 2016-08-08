@@ -4,4 +4,6 @@ import orbits from './pages/orbits'
 
 page('/', index);
 page('/orbits', orbits);
-page();
+page({
+  hashbang: true,
+});
