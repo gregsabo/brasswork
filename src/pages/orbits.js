@@ -13,10 +13,14 @@
 import THREE from 'three';
 import * as motion from 'popmotion';
 // import threeAdapter from 'popmotion-adapter-three';
-import { keys } from 'lodash';
+import { keys, range } from 'lodash';
 
-var Vector3 = THREE.Vector3;
 var camera, scene, renderer;
+
+var MOTION_DURATION = 4000;
+var NUM_OVERLAPPING = 10;
+var TAIL_LENGTH = 10;
+var TAIL_DELAY = 300;
 
 function init() {
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
@@ -27,8 +31,10 @@ function init() {
   scene.add(light);
 
   forEachFlip(function(x, y) {
-    var ring = makeRing();
-    ring.guide = new Guide(100, x, y).startNewMotion();
+    range(TAIL_LENGTH).forEach(function(i) {
+      var ring = makeRing();
+      ring.guide = new Guide(100, i * TAIL_DELAY, x, y).startNewMotion();
+    });
   });
 
   addPointLights();
@@ -45,43 +51,6 @@ function choose(inArray) {
   return inArray[Math.floor(Math.random() * inArray.length)];
 }
 
-function randomTarget() {
-  return {
-    x: {acceleration: Math.random() * 100},
-    x: {acceleration: Math.random() * 100},
-    x: {acceleration: Math.random() * 100},
-    // rotateX: choose([-1, 0, 1]) * Math.PI,
-    // rotateY: choose([-1, 0, 1]) * Math.PI,
-    // rotateZ: choose([-1, 0, 1]) * Math.PI
-  }
-}
-
-var SHAPE_HISTORY = [];
-function randomOrbitShape(size, seed) {
-  if (!SHAPE_HISTORY[seed]) {
-    SHAPE_HISTORY[seed] = new Vector3(
-      (Math.random() * size * 2) - size,
-      (Math.random() * size * 2) - size,
-      (Math.random() * size * 2) - size
-    );
-  }
-  return SHAPE_HISTORY[seed].clone();
-}
-
-var FLIP_HISTORY = [];
-function randomRotate(seed) {
-  if (!FLIP_HISTORY[seed]) {
-    var flip = new Vector3(
-      choose([-1, 0, 1]) * Math.PI,
-      choose([-1, 0, 1]) * Math.PI,
-      choose([-1, 0, 1]) * Math.PI
-    );
-    // flip[choose(['x', 'y', 'z'])] = 0;
-    FLIP_HISTORY[seed] = flip;
-  }
-  return FLIP_HISTORY[seed].clone();
-}
-
 function forEachFlip(inFunc) {
   [true, false].forEach(function(x) {
     [true, false].forEach(function(y) {
@@ -92,22 +61,15 @@ function forEachFlip(inFunc) {
   });
 }
 
-function pojo(inVector) {
-  return {
-    x: inVector.x,
-    y: inVector.y,
-    z: inVector.z
-  }
-}
-
 var TARGET_HISTORY = [];
 var CUMULATIVE = {x: 0, y: 0, z: 0};
+var GENERATION_DELAY_LOOKUP = {};
 class Guide {
-  constructor(max, flipX, flipY) {
+  constructor(max, delay, flipX, flipY) {
+    this.delay = delay;
     this.max = max;
     this.flipX = flipX;
     this.flipY = flipY;
-    this.cursors = [];
   }
 
   generateTargetAndUpdateCumulative(generation) {
@@ -119,19 +81,17 @@ class Guide {
     ['x', 'y', 'z'].forEach((dim) => {
       target[dim] = Math.random() * this.max - CUMULATIVE[dim];
       CUMULATIVE[dim] += target[dim];
-      target['rotate' + dim.toUpperCase()] = choose([-1, 1]) * Math.PI;
+      target['rotate' + dim.toUpperCase()] = (Math.random() * 6) - 3;
     })
-    console.log('cumulative now', JSON.stringify(CUMULATIVE));
-    target['rotate' + choose(['x', 'y', 'z']).toUpperCase()] = 0;
+    // target['rotate' + choose(['x', 'y', 'z']).toUpperCase()] = 0;
 
     TARGET_HISTORY[generation] = target;
-    console.log('created target', target);
 
     return target;
   }
 
-  generateAndStoreCursor() {
-    var cursor = {
+  generateCursor() {
+    return {
       x: 0,
       y: 0,
       z: 0,
@@ -139,36 +99,33 @@ class Guide {
       rotateY: 0,
       rotateZ: 0
     };
-    this.cursors.push(cursor);
-    return cursor;
   }
 
-  startNewMotion(delay, generation) {
-    var MOTION_DURATION = 4000;
-    var NUM_OVERLAPPING = 2;
-    if (!delay) {
-      delay = 0;
-    }
-
+  startNewMotion(generation) {
     if (!generation) {
       generation = 0;
     }
 
-    var target = this.generateTargetAndUpdateCumulative(generation);
-    var cursor = this.generateAndStoreCursor();
+    if (GENERATION_DELAY_LOOKUP[String(generation) + '.' + String(this.delay)]) {
+      // There's already a cursor for thie generation + delay.
+      return this;
+    }
 
-    setTimeout(() => {
-      motion.tween({
-        element: cursor,
-        values: target,
-        ease: motion.easing.quartInOut,
-        duration: MOTION_DURATION,
-      }).start();
-      setTimeout(
-        this.startNewMotion.bind(this, 0, generation + 1),
-        MOTION_DURATION / NUM_OVERLAPPING
-      )
-    }, delay)
+    var target = this.generateTargetAndUpdateCumulative(generation);
+    var cursor = this.generateCursor();
+
+    motion.tween({
+      element: cursor,
+      delay: generation === 0 ? this.delay : 0,
+      values: target,
+      ease: motion.easing.quartInOut,
+      duration: MOTION_DURATION,
+    }).start();
+    setTimeout(
+      this.startNewMotion.bind(this, 0, generation + 1),
+      MOTION_DURATION / NUM_OVERLAPPING
+    )
+    GENERATION_DELAY_LOOKUP[String(generation) + '.' + String(this.delay)] = true;
 
     return this;
   }
@@ -189,7 +146,7 @@ class Guide {
 
   applyToObject(object) {
     var combined = {};
-    this.cursors.forEach(function(cursor) {
+    CURSORS.forEach(function(cursor) {
       keys(cursor).forEach(function(key) {
         if (!combined[key]) {
           combined[key] = 0;
