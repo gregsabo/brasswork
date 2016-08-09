@@ -12,13 +12,14 @@ import Ease from '../easing';
 var camera, scene, renderer;
 
 var Vector3 = THREE.Vector3;
-var MOTION_DURATION = 600000;
-var NUM_OVERLAPPING = 10;
+var MOTION_DURATION = 300;
+var NUM_OVERLAPPING = 3;
 var TAIL_LENGTH = 20;
-var TAIL_SPACE = 0.005;
+var TAIL_SPACE = 0.04;
 var TAIL_DELAY = MOTION_DURATION * TAIL_SPACE;
-var ROTATION_AMOUNT = 20;
+var ROTATION_AMOUNT = Math.PI;
 var STRETCH_SPEED = 0.0001;
+var TIME_DILATION = 0.01;
 
 function init() {
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
@@ -51,7 +52,7 @@ function choose(inArray) {
 
 function forEachFlip(inFunc) {
   [true, false].forEach(function(x) {
-    [true].forEach(function(y) {
+    [true, false].forEach(function(y) {
       [false].forEach(function(z) {
         inFunc(x, y, z);
       });
@@ -90,8 +91,8 @@ class Guide {
       var rotate = (Math.random() * ROTATION_AMOUNT) - (ROTATION_AMOUNT / 2);
       target['rotate' + dim.toUpperCase()] = rotate;
     })
-    target['y'] = 0;
-    target['x'] *= 1.5;
+    // target['y'] = 0;
+    target['x'] *= 2;
     // target['rotateZ'] = 0;
     // target['rotate' + choose(['x', 'y', 'z']).toUpperCase()] = 0;
 
@@ -135,7 +136,7 @@ class Guide {
         if (!combined[key]) {
           combined[key] = 0;
         }
-        combined[key] += target[key] * Ease.easeInOutQuint(progressForThisTarget);
+        combined[key] += target[key] * Ease.easeInOutQuad(progressForThisTarget);
       })
     });
 
@@ -182,7 +183,7 @@ function addPointLights() {
 
 function makeRing() {
   // var geometry = new THREE.BoxGeometry( 200, 200, 200 );
-  var geometry = new THREE.TorusGeometry( 100, 5, 3, 30 );
+  var geometry = new THREE.TorusGeometry( 100, 2, 3, 30 );
   // var geometry = new THREE.TorusGeometry( 70, 3, 3, 10 );
   // var geometry = new THREE.OctahedronGeometry(50);
 
@@ -216,7 +217,7 @@ function onWindowResize() {
 var START_TIME = window.performance.now();
 var fast_forward = Math.random() * MOTION_DURATION * 2;
 function animate() {
-  var now = window.performance.now();
+  var now = window.performance.now() * TIME_DILATION;
   now += MOTION_DURATION * 2 / NUM_OVERLAPPING;
   now += fast_forward;
   scene.traverse(function(obj) {
