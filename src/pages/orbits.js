@@ -218,7 +218,7 @@ var fast_forward = Math.random() * MOTION_DURATION * 2;
 function animate() {
   var now = window.performance.now();
   now += MOTION_DURATION * 2 / NUM_OVERLAPPING;
-  // now += fast_forward;
+  now += fast_forward;
   scene.traverse(function(obj) {
     if (obj.guide) {
       obj.guide.applyToObject(obj, now - START_TIME);
