@@ -14,19 +14,19 @@ var camera, scene, renderer;
 var Vector3 = THREE.Vector3;
 var MOTION_DURATION = 300;
 var NUM_OVERLAPPING = 3;
-var TAIL_LENGTH = 20;
+var TAIL_LENGTH = 80;
 var TAIL_SPACE = 0.04;
 var TAIL_DELAY = MOTION_DURATION * TAIL_SPACE;
 var ROTATION_AMOUNT = Math.PI;
 var STRETCH_SPEED = 0.0001;
-var TIME_DILATION = 0.01;
+var TIME_DILATION = 0.02;
 
 function init() {
   camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 1000 );
   camera.position.z = 300;
 
   scene = new THREE.Scene();
-  var light = new THREE.AmbientLight( "#000" );
+  var light = new THREE.AmbientLight( "#fff" );
   scene.add(light);
 
   forEachFlip(function(x, y) {
@@ -41,6 +41,7 @@ function init() {
   renderer = new THREE.WebGLRenderer();
   renderer.setPixelRatio( window.devicePixelRatio );
   renderer.setSize( window.innerWidth, window.innerHeight );
+  // renderer.setClearColor("#fff");
   document.body.appendChild( renderer.domElement );
 
   window.addEventListener( 'resize', onWindowResize, false );
@@ -51,8 +52,8 @@ function choose(inArray) {
 }
 
 function forEachFlip(inFunc) {
-  [true, false].forEach(function(x) {
-    [true, false].forEach(function(y) {
+  [true].forEach(function(x) {
+    [true].forEach(function(y) {
       [false].forEach(function(z) {
         inFunc(x, y, z);
       });
@@ -92,7 +93,7 @@ class Guide {
       target['rotate' + dim.toUpperCase()] = rotate;
     })
     // target['y'] = 0;
-    target['x'] *= 2;
+    target['x'] *= 3;
     // target['rotateZ'] = 0;
     // target['rotate' + choose(['x', 'y', 'z']).toUpperCase()] = 0;
 
@@ -183,7 +184,7 @@ function addPointLights() {
 
 function makeRing() {
   // var geometry = new THREE.BoxGeometry( 200, 200, 200 );
-  var geometry = new THREE.TorusGeometry( 100, 2, 3, 30 );
+  var geometry = new THREE.TorusGeometry( 100, 1, 3, 50 );
   // var geometry = new THREE.TorusGeometry( 70, 3, 3, 10 );
   // var geometry = new THREE.OctahedronGeometry(50);
 
@@ -195,9 +196,10 @@ function makeRing() {
   // });
 
   var material = new THREE.MeshStandardMaterial({
-    color: "#B6A636",
-    metalness: 1.0,
-    roughness: 0.5,
+    // color: "#B6A636",
+    color: "#6e4d00",
+    metalness: 0.6,
+    roughness: 0.6,
     specular: "#FFF",
     emissive: "#000",
   });
